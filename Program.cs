@@ -18,11 +18,11 @@ builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
 app.UseCors("AllowAll");
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
-{
+// if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+// {
     app.UseSwagger(); // מייצר את ה-Swagger JSON
     app.UseSwaggerUI(); // מציג את ממשק ה-UI של Swagger
-}
+// }
 
 app.MapGet("/tasks", async (ToDoDbContext dbContext) =>
 {
