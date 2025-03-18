@@ -23,7 +23,7 @@ app.UseCors("AllowAll");
     app.UseSwagger(); // מייצר את ה-Swagger JSON
     app.UseSwaggerUI(); // מציג את ממשק ה-UI של Swagger
 // }
-
+app.MapGet("/", ()=>"Hello World!");
 app.MapGet("/tasks", async (ToDoDbContext dbContext) =>
 {
     var tasks = await dbContext.Items.ToListAsync(); // Retrieve all items from the database
