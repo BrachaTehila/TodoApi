@@ -5,25 +5,27 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
-        builder.WithOrigins("http://localhost:3000")  // כתובת הלקוח שלך
+        builder.WithOrigins("https://todolistreact-buof.onrender.com")  // כתובת הלקוח שלך
                .AllowAnyMethod()
                .AllowAnyHeader());
 });
 
 // Register the DbContext as a service
 builder.Services.AddDbContext<ToDoDbContext>(options =>
-    options.UseMySql(builder.Configuration.GetConnectionString("ToDoDB"), ServerVersion.AutoDetect(builder.Configuration.GetConnectionString("ToDoDB")))); // Adjust according to your SQL provider
+    options.UseMySql(builder.Configuration.GetConnectionString("ToDoDB"),
+    Microsoft.EntityFrameworkCore.ServerVersion.Parse("8.0.40-mysql")));
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
 var app = builder.Build();
+
 app.UseCors("AllowAll");
-// if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
-// {
+if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+{
     app.UseSwagger(); // מייצר את ה-Swagger JSON
     app.UseSwaggerUI(); // מציג את ממשק ה-UI של Swagger
-// }
-app.MapGet("/", ()=>"Hello World!");
+}
+app.MapGet("/", () => "TodoApi is running");
 app.MapGet("/tasks", async (ToDoDbContext dbContext) =>
 {
     var tasks = await dbContext.Items.ToListAsync(); // Retrieve all items from the database
