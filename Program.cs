@@ -5,7 +5,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", builder =>
-        builder.WithOrigins("https://todolistreact-buof.onrender.com")  // כתובת הלקוח שלך
+        builder.WithOrigins("https://todolistreact-buof.onrender.com") // ודא שזו כתובת הלקוח הנכונה
                .AllowAnyMethod()
                .AllowAnyHeader());
 });
@@ -20,53 +20,88 @@ builder.Services.AddSwaggerGen();
 var app = builder.Build();
 
 app.UseCors("AllowAll");
-if (app.Environment.IsDevelopment() || app.Environment.IsProduction())
+
+// טיפול בשגיאות גלובלי
+app.UseExceptionHandler(errorApp =>
 {
-    app.UseSwagger(); // מייצר את ה-Swagger JSON
-    app.UseSwaggerUI(); // מציג את ממשק ה-UI של Swagger
-}
+    errorApp.Run(async context =>
+    {
+        context.Response.StatusCode = 500;
+        context.Response.ContentType = "application/json";
+        await context.Response.WriteAsync("{\"error\":\"An unexpected error occurred.\"}");
+    });
+});
+
+
+    app.UseSwagger();
+    app.UseSwaggerUI();
+
+
 app.MapGet("/", () => "TodoApi is running");
 app.MapGet("/tasks", async (ToDoDbContext dbContext) =>
 {
-    var tasks = await dbContext.Items.ToListAsync(); // Retrieve all items from the database
-    return Results.Ok(tasks);
+    try
+    {
+        var tasks = await dbContext.Items.ToListAsync();
+        return Results.Ok(tasks);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error retrieving tasks: {ex.Message}");
+    }
 });
 
 app.MapPost("/tasks", async (ToDoDbContext dbContext, TodoApi.Item newTask) =>
 {
-    newTask.Id = 0; // ID חדש ייווצר אוטומטית
-    dbContext.Items.Add(newTask); // הוספת המשימה לטבלה items
-    await dbContext.SaveChangesAsync(); // שמירת השינויים
-    return Results.Created($"/tasks/{newTask.Id}", newTask);
+    try
+    {
+        newTask.Id = 0;
+        dbContext.Items.Add(newTask);
+        await dbContext.SaveChangesAsync();
+        return Results.Created($"/tasks/{newTask.Id}", newTask);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error creating task: {ex.Message}");
+    }
 });
 
-// עדכון משימה
 app.MapPut("/tasks/{id}", async (ToDoDbContext dbContext, int id, Item updatedTask) =>
 {
-    var task = await dbContext.Items.FindAsync(id); // מציאת המשימה בטבלה items
-    if (task == null)
-        return Results.NotFound($"Task with ID {id} not found.");
+    try
+    {
+        var task = await dbContext.Items.FindAsync(id);
+        if (task == null)
+            return Results.NotFound($"Task with ID {id} not found.");
 
-    task.Name = updatedTask.Name;
-    task.IsComplete = updatedTask.IsComplete;
+        task.Name = updatedTask.Name;
+        task.IsComplete = updatedTask.IsComplete;
 
-    await dbContext.SaveChangesAsync(); // שמירת השינויים
-    return Results.Ok(task);
+        await dbContext.SaveChangesAsync();
+        return Results.Ok(task);
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error updating task: {ex.Message}");
+    }
 });
 
-// מחיקת משימה
 app.MapDelete("/tasks/{id}", async (ToDoDbContext dbContext, int id) =>
 {
-    var task = await dbContext.Items.FindAsync(id); // חיפוש המשימה ב-items
-    if (task == null)
-        return Results.NotFound($"Task with ID {id} not found.");
+    try
+    {
+        var task = await dbContext.Items.FindAsync(id);
+        if (task == null)
+            return Results.NotFound($"Task with ID {id} not found.");
 
-    dbContext.Items.Remove(task); // מחיקת המשימה
-    await dbContext.SaveChangesAsync(); // שמירת השינויים
-    return Results.NoContent();
+        dbContext.Items.Remove(task);
+        await dbContext.SaveChangesAsync();
+        return Results.NoContent();
+    }
+    catch (Exception ex)
+    {
+        return Results.Problem($"Error deleting task: {ex.Message}");
+    }
 });
-
-// Route ברירת מחדל
-app.MapGet("/", () => "TodoApi is running");
 
 app.Run();
